@@ -45,19 +45,31 @@ void GenerateSecret()
 pair<int, int> HitAndBlow(const array<int, 4>& guess)
 {
     int hit = 0, blow = 0;
+    bool usedSec[4] = {false, false, false, false}; // 位置を記録するための配列
+    bool usedGuess[4] = {false, false, false, false}; // secretの位置を記録するための配列
+
     //Hit: 同じ位置に同じ数字がある場合
     for (int i = 0; i < 4; ++i)
     {
-        if (guess[i] == secret[i]) ++hit;
+        if (guess[i] == secret[i]) {
+        hit++;
+        usedSec[i]   = true;
+        usedGuess[i] = true;
+        }
     }
     //Blow: 同じ数字があるが位置が異なる場合
-    for (int i = 0; i < 4; ++i)
-    {   
-        for (int j = 0; j < 4; ++j)
-        {   
-            //打ち込んだ数字と、正解の数字が同じで、位置が異なる場合
-            //iとjが同じでないことを確認(Hitと重複しないように)
-            if (i != j && guess[i] == secret[j]) ++blow;
+    for(int i = 0; i < 4; ++i)
+    {
+        if (usedGuess[i]) continue;       // Hit 済みはスキップ
+        for(int j = 0; j < 4; ++j)
+        {
+            if (usedSec[j]) continue;       // 既に使った secret もスキップ
+            if (guess[i] == secret[j])
+            {
+                blow++;
+                usedSec[j] = true;            // この secret[j] はもう数えない
+                break;                        // guess[i] も次へ
+            }
         }
     }
     return {hit, blow};
@@ -215,7 +227,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 /*リストに追加*/
                 char entry[64];
 
-                sprintf(entry, "Input: %d%d%d%d, Hit: %d, Brow: %d",
+                sprintf(entry, "Input: %d%d%d%d, Hit: %d, Blow: %d",
                     guess[0], guess[1], guess[2], guess[3], hit, blow);
                 HWND hEdit = GetDlgItem(hwnd, ID_LIST_HISTORY);
                 SendMessage(hEdit, LB_ADDSTRING, 0, (LPARAM)entry);
@@ -246,7 +258,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
     RegisterClass(&wc);
 
     HWND hwnd = CreateWindowEx(
-        0, CLASS_NAME, "Hit_And_Brow",
+        0, CLASS_NAME, "Hit_And_Blow",
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
         1000, 600, nullptr, nullptr, hInstance, nullptr
       //　↑　　↑　windowサイズ
