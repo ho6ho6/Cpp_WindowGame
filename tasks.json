@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Win32 EXE",
+      "type": "shell",
+      "command": "x86_64-w64-mingw32-g++",
+      "args": [
+        "window.cpp",
+        "-o", "window.exe",
+        "-static",
+        "-municode",
+        "-std=c++17",
+        "-luser32",
+        "-lgdi32"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}
