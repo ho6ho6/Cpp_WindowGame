@@ -4,12 +4,11 @@
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include <chrono>
 
 //↓これでコンパイルして
 //x86_64-w64-mingw32-g++ window.cpp -mwindows \
   -static-libgcc -static-libstdc++ -o HitAndBlow.exe
-
-
 
 using namespace std;
 
@@ -24,6 +23,7 @@ enum {
 };
 
 static array<int, 4> secret; // 数値を格納する配列
+static chrono::steady_clock::time_point g_startTime; // ゲーム開始時刻
 
 //ランダムにsecretを生成
 void GenerateSecret()
@@ -41,7 +41,6 @@ void GenerateSecret()
 }
 
 //ヒットアンドブロー
-//first:ヒットの数, second:ブローの数
 pair<int, int> HitAndBlow(const array<int, 4>& guess)
 {
     int hit = 0, blow = 0;
@@ -181,6 +180,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             SendMessage(hList, WM_SETFONT, (WPARAM)hFONT, MAKELPARAM(TRUE,0));
 
             GenerateSecret(); // ゲーム開始時にランダムな数字を生成
+            g_startTime = chrono::steady_clock::now(); // ゲーム開始時刻を記録
 
             return 0;
         }
@@ -236,9 +236,27 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                 /*正解したらリセット*/
                 if(hit == 4)
-                {
-                    MessageBox(hwnd, "Congratulations!", "You got it", MB_OK | MB_ICONINFORMATION);
+                {   
+                    // クリアまでの時間をnow - startTimeで計算
+                    auto endTime = chrono::steady_clock::now();
+                    auto elapsed = endTime - g_startTime;
+                    auto msTotal = chrono::duration_cast<chrono::milliseconds>(elapsed).count();
+
+                    int sec    = static_cast<int>(msTotal / 1000);
+
+                    // 結果を表示
+                    char showSec[128];
+                    sprintf(showSec, "Clear Time = %d s", sec);
+                    // MessageBoxA で表示
+                    MessageBoxA(
+                        hwnd,                   // 親ウィンドウハンドル
+                        showSec,                // 表示するテキスト
+                        "Congratulations",      // キャプション（タイトルバー）
+                        MB_OK | MB_ICONINFORMATION
+                    );
+
                     GenerateSecret(); // 新しい数字を生成
+                    g_startTime = chrono::steady_clock::now(); // 新しいゲーム開始時刻を記録
                     SendMessage(hEdit, LB_RESETCONTENT, 0, 0); // 履歴リストをクリア
                 }
             }
@@ -248,6 +266,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+/*触らなくていい*/
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
     const char CLASS_NAME[] = "CppApp_Window";
 
